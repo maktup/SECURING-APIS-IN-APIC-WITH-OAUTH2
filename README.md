@@ -5,10 +5,14 @@
 
 Having an **IBM API CONNECT** license as an **API GATEWAY** platform facilitates this assurance, since it has internal mechanisms which allow all **OAUTH2 FLOWS** to be implemented currently.
 
-**2. USE CASE: **
+
+
+**2. USE CASE:**
 I am sharing how to show how to implement an architectural security solution, based on **OAUTH2 + additional components**, that allows having a robust solution for a client that manages a service-oriented architecture, in this case based on **REST** services.
 
-**3. ARQUITECTURA: **
+
+
+**3. ARQUITECTURA:**
 The architectural solution integrates the following:
 
 **"JWT - AUTHORIZATION CODE + OPENID CONNECT"**, considering the use of a **DEFAULT HTML FORM** provided by **IBM API CONNECT**.
@@ -18,7 +22,8 @@ The architectural diagram of the solution is as follows:
 ![alt text](https://github.com/maktup/SECURING-APIS-IN-APIC-WITH-OAUTH2/blob/main/ARCHITECTURE/Arquitectura%20-%20%5BPropuesta-02%5D%20-%20%5BDefault%20HTML%20Form%5D.jpg?raw=true)
 
 
-**4. ARCHITECTURE: **
+
+**4. ARCHITECTURE:**
 The step-by-step procedure carried out for the **CONFIGURATION** and for the **TESTS** carried out of the architectural solution will be shown below:
 
 This shows the creation of the **USER REGISTRY URL**, which will be used to access the **BackEnd URL** that will handle client authentication. This solution should be implemented on-site by the client, because it interacts with its **DB** :
@@ -75,6 +80,8 @@ Here the following **URL** is executed: **/oauth2/introspect**, that allows vali
 
 Finally, after the entire validation block has been carried out and with the **TOKENs** obtained, you can proceed with the **ACCESS_TOKEN** to obtain the response from the **RESOURCE/API**, which was the main objective:
 ![alt text](https://github.com/maktup/SECURING-APIS-IN-APIC-WITH-OAUTH2/blob/main/CONFIGURATION/Config_19.jpg?raw=true)
+
+
 
 **5. COMPONENTS:**
 For easy replication of the solution, the .**YAMLs** of the **APIs** used and the **OAUTH PROVIDER** have been shared with all the configuration already applied.
