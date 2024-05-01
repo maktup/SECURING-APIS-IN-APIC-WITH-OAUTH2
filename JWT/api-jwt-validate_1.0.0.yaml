@@ -1,0 +1,106 @@
+swagger: '2.0'
+info:
+  title: api-jwt-validate
+  x-ibm-name: api-jwt-validate
+  version: 1.0.0
+  description: API para la VALIDACION de un TOKEN JWT.
+x-ibm-configuration:
+  cors:
+    enabled: true
+  gateway: datapower-api-gateway
+  type: rest
+  phase: realized
+  enforced: true
+  testable: true
+  assembly:
+    execute:
+      - operation-switch:
+          version: 2.0.0
+          title: operation-switch
+          case:
+            - operations:
+                - verb: get
+                  path: /val-01
+              execute:
+                - set-variable:
+                    version: 2.0.0
+                    title: set-variable
+                    actions:
+                      - set: hs256-key
+                        value: >-
+                          { "alg": "HS256", "kty": "oct", "use": "sig", "k":
+                          "o5yErLaE-dbgVpSw65Rq57OA9dHyaF66Q_Et5azPa-XUjbyP0w9iRWhR4kru09aFfQLXeIODIN4uhjElYKXt8n76jt0Pjkd2pqk4t9abRF6tnL19GV4pflfL6uvVKkP4weOh39tqHt4TmkBgF2P-gFhgssZpjwq6l82fz3dUhQ2nkzoLA_CnyDGLZLd7SZ1yv73uzfE2Ot813zmig8KTMEMWVcWSDvy61F06vs_6LURcq_IEEevUiubBxG5S2akNnWigfpbhWYjMI5M22FOCpdcDBt4L7K1-yHt95Siz0QUb0MNlT_X8F76wH7_A37GpKKJGqeaiNWmHkgWdE8QWDQ",
+                          "kid": "hs256-key" }
+                        type: string
+                    description: POLITICA PARA EL SETEO DEL FORMATO DE VARIABLE (JWK).
+                - jwt-validate:
+                    version: 2.0.0
+                    title: jwt-validate
+                    jwt: request.headers.jwt-token
+                    output-claims: decoded.claims
+                    jws-jwk: hs256-key
+                    description: POLITICA PARA LA VALIDACION DEL TOKEN JWT.
+                - gatewayscript:
+                    version: 2.0.0
+                    title: gatewayscript - Response
+                    source: "var objResponse = require( 'apim' );\r\nvar vJwtToken   = objResponse.getvariable( 'decoded.claims' );\r\n\r\nobjResponse.setvariable( 'message.body', vJwtToken );\r\nobjResponse.output( 'application/json' );\r\n"
+                    description: GATEWAYSCRIPT PARA LE RESPONSE EN FORMATO JSON.
+            - operations:
+                - verb: get
+                  path: /val-02
+              execute:
+                - gatewayscript:
+                    version: 2.0.0
+                    title: gatewayscript - Decode JWT
+                    source: "var objJwt      = require( 'jwt'  );\r\nvar objResponse = require( 'apim' );\r\nvar vJwtToken   = objResponse.getvariable( 'request.headers.jwt-token' );\r\nvar vJwtTokenToString      = \"\";\r\nvar objDecoder             = \"\";\r\nvar objArrayCadenaJwtToken = \"\";\r\nvar vHeader    = \"\";\r\nvar vPayload   = \"\";\r\nvar vSignature = \"\";\r\nvar vObjeto    = \"\";\r\n \r\nif( vJwtToken ){\t\r\n\t  vJwtTokenToString      = vJwtToken.toString();\r\n    objDecoder             = new objJwt.Decoder( vJwtTokenToString ); \r\n    objArrayCadenaJwtToken = vJwtTokenToString.split( '.' );\r\n    \r\n    vHeader    = objArrayCadenaJwtToken[0];\r\n    vPayload   = objArrayCadenaJwtToken[1];\r\n    vSignature = objArrayCadenaJwtToken[2];\r\n    \r\n    objDecoder.decode( function( vError, vBody ){\r\n    if( vError ){\r\n        session.output.write( 'Eror validando TOKEN JWT: ' + error );\r\n    } \r\n    else{\t    \t\r\n\t    \t var objOutput = {\r\n\t\t\t\t \t\t 'header': vHeader,\r\n\t\t\t\t \t\t 'payload': vPayload,\r\n\t\t\t\t \t\t 'signature': vSignature,\r\n\t\t\t\t \t\t 'decodePayloadBody': vBody\r\n\t\t\t\t \t};\r\n\t    \t \r\n\t       session.output.write( objOutput );\r\n    }\r\n  }); \r\n} \r\n\r\nobjResponse.output( 'application/json' );\r\n"
+                    description: >-
+                      GATEWAYSCRIPT PARA LA VALIDACION COMPLETA DEL TOKEN JWT
+                      ENVIADO EN EL REQUEST.
+          otherwise: []
+    finally: []
+    catch: []
+  properties:
+    target-url:
+      value: http://example.com/operation-name
+      description: The URL of the target service
+      encoded: false
+  activity-log:
+    enabled: true
+    success-content: activity
+    error-content: payload
+basePath: /api-jwt-validate
+paths:
+  /val-01:
+    parameters:
+      - in: header
+        name: jwt-token
+        required: true
+        type: string
+    get:
+      responses:
+        '200':
+          description: success
+          schema:
+            type: string
+  /val-02:
+    get:
+      responses:
+        '200':
+          description: success
+          schema:
+            type: string
+    parameters:
+      - name: jwt-token
+        required: true
+        in: header
+        type: string
+securityDefinitions:
+  clientID:
+    type: apiKey
+    in: header
+    name: X-IBM-Client-Id
+    x-key-type: client_id
+security:
+  - clientID: []
+schemes:
+  - https

@@ -1,0 +1,555 @@
+info:
+  description: ibm-native-oauth-provider8
+  x-ibm-name: ibm-native-oauth-provider8760a1924-e6b3-47bf-805e-b402c5bf39b0
+  version: 1.0.0
+  title: ibm-native-oauth-provider8
+x-ibm-configuration:
+  gateway: datapower-api-gateway
+  assembly:
+    execute:
+      - set-variable:
+          title: x-ibm-oauth-oidc-auto-generated-set-variable
+          description: Set the necessary JWS context info
+          actions:
+            - set: oauth.oidc.issuer.url
+              value: $(JWTIssuer)
+              type: any
+            - set: oauth.oidc.jwt.sign.jwk
+              value: $(JWSSignPrivateKey)
+              type: any
+            - set: oauth.oidc.jwt.sign.algorithm
+              value: $(JWSAlgorithm)
+              type: any
+            - set: oauth.oidc.jwk.kid
+              value: $(JWSSignKeyKID)
+              type: any
+          version: 2.0.0
+      - oauth:
+          title: oauth-auto-generated-1
+          version: 2.0.0
+          description: >-
+            This oauth policy performs all OAuth/OpenID Connect protocol steps
+            that are needed for OAuth Validation by default. The inputs and
+            outputs of each of the steps are driven by documented context
+            variables. Add or remove the Supported OAuth Components as required.
+          oauth-provider-settings-ref:
+            default: ibm-native-oauth-provider8
+          supported-oauth-components:
+            - OAuthValidateRequest
+      - switch:
+          version: 2.0.0
+          title: oauth-auto-generated-switch
+          case:
+            - condition: ($operationPath() = '/oauth2/token')
+              execute:
+                - oauth:
+                    title: oauth-auto-generated-3
+                    version: 2.0.0
+                    description: >-
+                      This oauth policy performs all OAuth/OpenID Connect
+                      protocol steps that are needed for token path by default.
+                      The inputs and outputs of each of the steps are driven by
+                      documented context variables. Add or remove the Supported
+                      OAuth Components as required.
+                    oauth-provider-settings-ref:
+                      default: ibm-native-oauth-provider8
+                    supported-oauth-components:
+                      - OAuthGenerateAccessToken
+                      - OAuthVerifyAZCode
+                      - OAuthVerifyRefreshToken
+                      - OAuthCollectMetadata
+            - condition: ($operationPath() = '/oauth2/authorize')
+              execute:
+                - user-security:
+                    title: user-security-auto-generated
+                    version: 2.1.0
+                    description: >-
+                      This user security policy performs EI(basic) and AU(auth
+                      url) check for oauth assembly. Change the security check
+                      method as required
+                    factor-id: default
+                    extract-identity-method: html-form
+                    ei-stop-on-error: true
+                    user-auth-method: user-registry
+                    au-stop-on-error: true
+                    user-az-method: authenticated
+                    az-stop-on-error: true
+                    user-registry: ibm-auth-url-02
+                    ei-form-time-limit: 300
+                    ei-default-form: true
+                - oauth:
+                    title: oauth-auto-generated-2
+                    version: 2.0.0
+                    description: >-
+                      This oauth policy performs all OAuth/OpenID Connect
+                      protocol steps that are needed for az code path by
+                      default. The inputs and outputs of each of the steps are
+                      driven by documented context variables. Add or remove the
+                      Supported OAuth Components as required.
+                    oauth-provider-settings-ref:
+                      default: ibm-native-oauth-provider8
+                    supported-oauth-components:
+                      - OAuthGenerateAZCode
+                      - OAuthGenerateAccessToken
+                      - OAuthVerifyAZCode
+                      - OAuthCollectMetadata
+            - otherwise:
+                - oauth:
+                    title: oauth-auto-generated-4
+                    version: 2.0.0
+                    description: >-
+                      This oauth policy performs all OAuth/OpenID Connect
+                      protocol steps that are needed for all other paths by
+                      default. The inputs and outputs of each of the steps are
+                      driven by documented context variables. Add or remove the
+                      Supported OAuth Components as required.
+                    oauth-provider-settings-ref:
+                      default: ibm-native-oauth-provider8
+                    supported-oauth-components:
+                      - OAuthIntrospectToken
+                      - OAuthRevokeToken
+      - switch:
+          version: 2.0.0
+          title: x-ibm-oauth-oidc-auto-generated-switch
+          case:
+            - condition: ($exists(oauth.oidc.enabled))
+              execute:
+                - jwt-generate:
+                    version: 2.0.0
+                    title: x-ibm-oauth-oidc-auto-generated-jwt-generate
+                    jwt: oauth.oidc.idtoken
+                    iss-claim: oauth.oidc.issuer.url
+                    exp-claim: 3600
+                    description: Generate the OIDC JWT
+                    sub-claim: oauth.oidc.sub
+                    aud-claim: oauth.oidc.aud
+                    private-claims: oauth.oidc.claims
+                    jti-claim: true
+                    jws-crypto: ''
+                    jws-alg: HS256
+                    jws-jwk: oauth.oidc.jwt.sign.jwk
+                - gatewayscript:
+                    title: x-ibm-oauth-oidc-auto-generated-gatewayscript
+                    description: Inject OIDC into response
+                    version: 2.0.0
+                    source: >-
+                      function getIDToken() {
+                        var idtoken = context.get('oauth.oidc.idtoken');
+                        if (idtoken !== undefined)
+                        {
+                          if (idtoken.startsWith('Bearer '))
+                          {
+                            idtoken = idtoken.substring(7);
+                          }
+                        }
+                        return idtoken;
+                      }
+
+
+                      function injectTokenInHeader(token) {
+                        if (token === undefined) return;
+                        
+                        var location = context.message.header.get('Location');
+                        if (location === undefined) {
+                          location = "id_token=" + token;
+                        }
+                        else if (location.endsWith('?') || location.endsWith('#'))
+                        {
+                          location = location + "id_token=" + token;
+                        }
+                        else
+                        {
+                          location = location + "&id_token=" + token;
+                        }
+                        context.message.header.set('Location', location);
+                      }
+
+
+                      function injectTokenInBody(token) {
+                        if (token === undefined)
+                          return;
+
+                        context.message.body.readAsJSON(function (error, jsonBody)
+                        {
+                          if (error)
+                          {
+                            return;
+                          }
+                          
+                          if (jsonBody === undefined)
+                          {
+                            jsonBody = {"id_token": token};
+                          }
+                          else
+                          {
+                            jsonBody.id_token = token;
+                          }
+                          context.message.body.write(jsonBody);
+                        });
+                      }
+
+
+                      function injectTokenInForm(token) {
+                        if (token === undefined)
+                            return;
+                        
+                        let messageBody = context.get('message.body');
+                        if (messageBody === undefined)
+                            return;
+                            
+                        let formEndIndex = messageBody.indexOf("</form>");
+                        
+                        let idTokenFormInput = '<input type="hidden" name="id_token" value="' + token + '" />';
+                        messageBody = messageBody.slice(0, formEndIndex) + idTokenFormInput + messageBody.slice(formEndIndex);
+                        
+                        context.message.body.write(messageBody);
+                        
+                      }
+
+
+                      function displayError(error) {
+                        if (error !== null)
+                          console.error(error);
+                      }
+
+
+                      var oidc_enabled = context.get('oauth.oidc.enabled');
+
+                      if ((oidc_enabled === undefined) || !oidc_enabled) {
+                        console.debug('OIDC disabled');
+                        return;
+                      }
+
+
+                      var token = getIDToken();
+
+                      if (token === undefined) {
+                        displayError('No ID Token available');
+                        return;
+                      }
+
+
+                      var requestType = context.get('oauth.oidc.request_type');
+
+                      var responseModeLocation =
+                      context.get('request.parameters.response_mode.locations');
+
+                      if (responseModeLocation &&
+                      responseModeLocation.includes('query')) {
+                        var responseModeValue = context.get('request.parameters.response_mode.values');
+                        var formPostResponse = responseModeValue.includes('form_post');
+                      }
+
+                      var error = null;
+
+                      if (requestType === undefined) {
+                        error = 'Undefined request type';
+                      } else if (formPostResponse) {
+                        injectTokenInForm(token);
+                      } else if (requestType === 'implicit') {
+                        injectTokenInHeader(token);
+                      } else if (requestType === 'azcode_get') {
+                        injectTokenInHeader(token);
+                      } else if (requestType === 'azcode_grant') {
+                        injectTokenInBody(token);
+                      } else {
+                        error = 'Invalid request type ' + requestType;
+                        displayError(error);
+                        return;
+                      }
+  type: oauth
+  testable: true
+  enforced: true
+  phase: realized
+  cors:
+    enabled: true
+  properties:
+    JWSSignKeyKID:
+      value: ''
+      description: x-ibm-oauth-oidc-auto-generated-JWSSignKeyKID
+      encoded: false
+    JWSSignPrivateKey:
+      value: >-
+        { "alg": "HS256", "kty": "oct", "use": "sig", "k":
+        "o5yErLaE-dbgVpSw65Rq57OA9dHyaF66Q_Et5azPa-XUjbyP0w9iRWhR4kru09aFfQLXeIODIN4uhjElYKXt8n76jt0Pjkd2pqk4t9abRF6tnL19GV4pflfL6uvVKkP4weOh39tqHt4TmkBgF2P-gFhgssZpjwq6l82fz3dUhQ2nkzoLA_CnyDGLZLd7SZ1yv73uzfE2Ot813zmig8KTMEMWVcWSDvy61F06vs_6LURcq_IEEevUiubBxG5S2akNnWigfpbhWYjMI5M22FOCpdcDBt4L7K1-yHt95Siz0QUb0MNlT_X8F76wH7_A37GpKKJGqeaiNWmHkgWdE8QWDQ",
+        "kid": "hs256-key" }
+      description: x-ibm-oauth-oidc-auto-generated-JWSSignPrivateKey
+      encoded: false
+    JWSAlgorithm:
+      value: HS256
+      description: x-ibm-oauth-oidc-auto-generated-JWSAlgorithm
+      encoded: false
+    JWTIssuer:
+      value: IBM APIConnect
+      description: x-ibm-oauth-oidc-auto-generated-JWTIssuer
+      encoded: false
+swagger: '2.0'
+host: $(catalog.host)
+schemes:
+  - https
+basePath: /ibm-native-oauth-provider8
+paths:
+  /oauth2/authorize:
+    get:
+      produces:
+        - text/html
+      summary: Endpoint for Authorization Code and Implicit grants
+      description: >-
+        This endpoint allows an access token (Implicit) or access code
+        (Authorization Code) request with the following parameters:
+                      - Implicit (response_type = token, client_id, scope, redirect_uri(*), state(*), response_mode(*))
+                      - Authorization Code (response_type = code, client_id, scope, redirect_uri(*), state(*), response_mode(*))
+      parameters:
+        - name: response_type
+          in: query
+          description: request an authorization code or an access token (implicit)
+          required: true
+          type: string
+          enum:
+            - code
+            - token
+        - name: response_mode
+          in: query
+          description: If included, must have the value 'form_post'
+          required: false
+          type: string
+        - name: client_id
+          in: query
+          description: client_id of the application which product is subscribed to
+          required: true
+          type: string
+        - name: scope
+          in: query
+          description: Scope being requested
+          type: string
+          required: true
+        - name: redirect_uri
+          in: query
+          type: string
+          description: URI where user is redirected to after authorization
+          required: false
+        - name: state
+          in: query
+          type: string
+          description: >-
+            This string will be echoed back to application when user is
+            redirected
+          required: false
+      responses:
+        '200':
+          description: An HTML form for authentication or authorization of this request.
+        '302':
+          description: >
+            Redirect to the clients redirect_uri containing one of the following
+
+            - **authorization code** for Authorization code grant
+
+            - **access token** for Implicit grant
+
+            - **error** in case of errors, such as the user has denied the
+            request
+    post:
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - text/html
+      summary: Endpoint for Authorization Code and Implicit grants
+      description: Submit approval to access token.
+      security: []
+      parameters:
+        - name: response_type
+          in: formData
+          description: request an authorization code or an access token (implicit)
+          required: false
+          type: string
+          enum:
+            - code
+            - token
+        - name: client_id
+          in: formData
+          description: application requesting the access code or token
+          required: false
+          type: string
+        - name: scope
+          in: formData
+          description: requested scope of this authorization
+          required: false
+          type: string
+        - name: redirect_uri
+          in: formData
+          description: >-
+            URI the application is requesting this code or token to be
+            redirected to
+          required: false
+          type: string
+      responses:
+        '200':
+          description: 200 OK
+  /oauth2/token:
+    post:
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/json
+      summary: >-
+        Endpoint for obtaining access token using Authorization code,
+        Application and Password grants
+      description: >-
+        This endpoint allows requesting an access token following one of the
+        flows below:
+                - Access Code (exchange access code for an access token)
+                - Client Credentials (2-legged, resource owner credentials are not obtained)
+                - Resource Owner Password Credentials (2-legged, client provides resource owner name and password)
+                - Refresh Token (exchange refresh token for a new access token)
+      parameters:
+        - name: grant_type
+          in: formData
+          required: true
+          type: string
+          enum:
+            - authorization_code
+            - password
+            - client_credentials
+            - refresh_token
+            - urn:ietf:params:oauth:grant-type:jwt-bearer
+        - name: client_id
+          in: formData
+          description: >-
+            application requesting the token, if there is no Authorization
+            header in the request, this parameter is required
+          required: false
+          type: string
+        - name: client_secret
+          in: formData
+          description: >-
+            application requesting the token, if the provider is confidential,
+            this parameter is required
+          required: false
+          type: string
+        - name: scope
+          in: formData
+          description: requested scope of this authorization
+          required: true
+          type: string
+        - name: code
+          in: formData
+          description: >-
+            access code generated from the az get request, required in Access
+            code flow
+          required: false
+          type: string
+        - name: refresh_token
+          in: formData
+          description: >-
+            refresh token generated from the last token request, required in
+            refresh token flow
+          required: false
+          type: string
+        - name: assertion
+          in: formData
+          description: id_token in the JWT request, required in JWT flow
+          required: false
+          type: string
+      responses:
+        '200':
+          description: 200 OK
+  /oauth2/introspect:
+    post:
+      consumes:
+        - application/x-www-form-urlencoded
+      produces:
+        - application/json
+      summary: Introspect a given access_token or refresh_token supported
+      description: |
+        This endpoint introspects a given access_token or refresh_token
+      security: []
+      parameters:
+        - required: true
+          type: string
+          description: The client id for the subscriber
+          in: formData
+          name: client_id
+        - required: false
+          type: string
+          description: This parameter is required if the API is confidential
+          in: formData
+          name: client_secret
+        - name: token
+          in: formData
+          description: String value of the access_token or refresh_token to be introspected
+          required: true
+          type: string
+        - name: token_type_hint
+          in: formData
+          description: >-
+            This must contain 'access_token' or 'refresh_token' to indicate the
+            token type
+          required: false
+          type: string
+          enum:
+            - access_token
+            - refresh_token
+      responses:
+        '200':
+          description: >-
+            json document containing access_token or refresh_token information,
+            etc.
+          schema:
+            $ref: '#/definitions/introspect_response'
+        '401':
+          description: failure
+definitions:
+  access_token_response:
+    type: object
+    additionalProperties: false
+    required:
+      - access_token
+    properties:
+      access_token:
+        type: string
+  introspect_response:
+    type: object
+    additionalProperties: false
+    required:
+      - active
+      - client_id
+      - client_name
+      - username
+      - sub
+      - exp
+      - expstr
+      - iat
+      - nbf
+      - nbfstr
+      - scope
+    properties:
+      active:
+        type: boolean
+      client_id:
+        type: string
+      client_name:
+        type: string
+      username:
+        type: string
+      sub:
+        type: string
+      exp:
+        type: string
+      expstr:
+        type: string
+      iat:
+        type: string
+      nbf:
+        type: string
+      nbfstr:
+        type: string
+      scope:
+        type: string
+      miscinfo:
+        type: string
+      consented_on:
+        type: string
+      consented_on_str:
+        type: string
+      grant_type:
+        type: string

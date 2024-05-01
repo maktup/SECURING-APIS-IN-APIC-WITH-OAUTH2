@@ -1,0 +1,77 @@
+swagger: '2.0'
+info:
+  title: api-lab-seguridad-08
+  x-ibm-name: api-lab-seguridad-08
+  version: 1.0.0
+x-ibm-configuration:
+  cors:
+    enabled: true
+  gateway: datapower-api-gateway
+  type: rest
+  phase: realized
+  enforced: true
+  testable: true
+  assembly:
+    execute:
+      - operation-switch:
+          version: 2.0.0
+          title: operation-switch
+          case:
+            - operations:
+                - verb: get
+                  path: /mensaje
+              execute:
+                - gatewayscript:
+                    version: 2.0.0
+                    title: gatewayscript
+                    source: "var objResponse = require( 'apim' );\r\nvar objOutput = {\r\n\t'mensaje': \"Este es un RESPONSE de validacion de la API de SEGURIDAD\"\r\n};\r\n\r\nsession.output.write( objOutput );\r\nobjResponse.output( 'application/json' );\r\n \r\n"
+          otherwise: []
+    finally: []
+  properties:
+    target-url:
+      value: http://example.com/operation-name
+      description: The URL of the target service
+      encoded: false
+  activity-log:
+    enabled: true
+    success-content: activity
+    error-content: payload
+basePath: /api-lab-seguridad-08
+paths:
+  /mensaje:
+    get:
+      responses:
+        '200':
+          description: success
+          schema:
+            type: string
+securityDefinitions:
+  clientID:
+    type: apiKey
+    in: header
+    name: X-IBM-Client-Id
+    x-key-type: client_id
+    description: X-IBM-Client-Id => client_id
+  client_secret:
+    type: apiKey
+    x-key-type: client_secret
+    name: X-IBM-Client-Secret
+    in: header
+    description: X-IBM-Client-Secret => client_secret
+  clientOAuth:
+    type: oauth2
+    x-ibm-oauth-provider: ibm-native-oauth-provider8
+    flow: accessCode
+    authorizationUrl: https://$(catalog.url)/ibm-native-oauth-provider8/oauth2/authorize
+    tokenUrl: https://$(catalog.url)/ibm-native-oauth-provider8/oauth2/token
+    scopes:
+      openid: Support OIDC
+      ibm_scope: ibm_scope
+schemes:
+  - https
+security:
+  - clientID: []
+    client_secret: []
+    clientOAuth:
+      - ibm_scope
+      - openid

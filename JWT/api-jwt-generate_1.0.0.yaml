@@ -1,0 +1,136 @@
+swagger: '2.0'
+info:
+  title: api-jwt-generate
+  x-ibm-name: api-jwt-generate
+  version: 1.0.0
+  description: API para la GENERACION de un TOKEN JWT.
+x-ibm-configuration:
+  cors:
+    enabled: true
+  gateway: datapower-api-gateway
+  type: rest
+  phase: realized
+  enforced: true
+  testable: true
+  assembly:
+    execute:
+      - operation-switch:
+          version: 2.0.0
+          title: operation-switch
+          case:
+            - operations:
+                - verb: get
+                  path: /gen-01
+              execute:
+                - set-variable:
+                    version: 2.0.0
+                    title: set-variable
+                    actions:
+                      - set: hs256-key
+                        value: >-
+                          { "alg": "HS256", "kty": "oct", "use": "sig", "k":
+                          "o5yErLaE-dbgVpSw65Rq57OA9dHyaF66Q_Et5azPa-XUjbyP0w9iRWhR4kru09aFfQLXeIODIN4uhjElYKXt8n76jt0Pjkd2pqk4t9abRF6tnL19GV4pflfL6uvVKkP4weOh39tqHt4TmkBgF2P-gFhgssZpjwq6l82fz3dUhQ2nkzoLA_CnyDGLZLd7SZ1yv73uzfE2Ot813zmig8KTMEMWVcWSDvy61F06vs_6LURcq_IEEevUiubBxG5S2akNnWigfpbhWYjMI5M22FOCpdcDBt4L7K1-yHt95Siz0QUb0MNlT_X8F76wH7_A37GpKKJGqeaiNWmHkgWdE8QWDQ",
+                          "kid": "hs256-key" }
+                        type: string
+                    description: POLITICA PARA EL SETEO DEL FORMATO DE VARIABLE (JWK).
+                - gatewayscript:
+                    version: 2.0.0
+                    title: gatewayscript - Input Params
+                    source: "var objResponse    = require( 'apim' );\r\nvar vTrama01Header = objResponse.getvariable( 'request.headers.trama-01' );\r\nvar vTrama02Header = objResponse.getvariable( 'request.headers.trama-02' );\r\nvar vTrama03Header = objResponse.getvariable( 'request.headers.trama-03' );\r\nvar vTrama04Header = objResponse.getvariable( 'request.headers.trama-04' );\r\n\r\nvar vCampoTrama01 = \"\"; \r\nvar vValorTrama01 = \"\";\r\nvar vCampoTrama02 = \"\"; \r\nvar vValorTrama02 = \"\";\r\nvar vCampoTrama03 = \"\"; \r\nvar vValorTrama03 = \"\";\r\nvar vCampoTrama04 = \"\"; \r\nvar vValorTrama04 = \"\";\r\n\r\nif( vTrama01Header !== null && vTrama01Header !== '' ){ \t\r\n\t  var objArray_01 = vTrama01Header.split( \"|\" );   \r\n    for( var i=0; i<objArray_01.length; i++ ){\r\n    \t   vCampoTrama01 = objArray_01[0];\r\n    \t   vValorTrama01 = objArray_01[1]; \r\n    }\r\n}\r\n\r\nif( vTrama02Header !== null && vTrama02Header !== '' ){\r\n    var objArray_02 = vTrama02Header.split( \"|\" );\r\n    for( var i=0; i<objArray_02.length; i++ ){\r\n    \t   vCampoTrama02 = objArray_02[0];\r\n    \t   vValorTrama02 = objArray_02[1]; \r\n    }\r\n}\r\n\r\nif( vTrama03Header !== null && vTrama03Header !== '' ){\r\n    var objArray_03 = vTrama03Header.split( \"|\" ); \r\n    for( var i=0; i<objArray_03.length; i++ ){\r\n    \t   vCampoTrama03 = objArray_03[0];\r\n    \t   vValorTrama03 = objArray_03[1]; \r\n    }\r\n}\r\n\r\nif( vTrama04Header !== null && vTrama04Header !== '' ){\r\n    var objArray_04 = vTrama04Header.split( \"|\" ); \r\n    for( var i=0; i<objArray_04.length; i++ ){\r\n    \t   vCampoTrama04 = objArray_04[0];\r\n    \t   vValorTrama04 = objArray_04[1]; \r\n    }\r\n}\r\n\r\nvar objJSONString   = '{\"data\": {\"' + \r\n                      vCampoTrama01 + '\": \"' + vValorTrama01 + '\", \"' +\r\n                      vCampoTrama02 + '\": \"' + vValorTrama02 + '\", \"' + \r\n                      vCampoTrama03 + '\": \"' + vValorTrama03 + '\", \"' + \r\n                      vCampoTrama04 + '\": \"' + vValorTrama04 + \r\n                      '\"}}';\r\n                      \r\nvar objPayloadExtra = JSON.parse( objJSONString );\r\n\r\nobjResponse.setvariable( 'private.claim', objPayloadExtra );\r\n"
+                    description: >-
+                      GATEWAYSCRIPT PARA LA VALIDACION DE LOS PARAMETROS
+                      PERSONALIZADOS ADICIONALES ENVIADOS EN EL REQUEST.
+                - jwt-generate:
+                    version: 2.0.0
+                    title: jwt-generate
+                    jwt: generated.jwt
+                    iss-claim: request.headers.iss-claim
+                    exp-claim: 60
+                    description: POLITICA PARA LA GENERACION DEL TOKEN JWT.
+                    aud-claim: request.headers.aud-claim
+                    sub-claim: request.headers.sub-claim
+                    jws-jwk: hs256-key
+                    jwe-jwk: ''
+                    jws-alg: HS256
+                    jws-crypto: ''
+                    private-claims: private.claim
+                - gatewayscript:
+                    version: 2.0.0
+                    title: gatewayscript - Response
+                    source: "var objResponse = require( 'apim' );\r\nvar vJwtToken   = objResponse.getvariable( 'generated.jwt' );\r\n\r\nvar json_output = {\r\n\t'jwt': vJwtToken\r\n};\r\n\r\n\r\nsession.output.write( json_output );\r\nobjResponse.output( 'application/json' );\r\n"
+                    description: GATEWAYSCRIPT PARA LE RESPONSE EN FORMATO JSON.
+            - operations:
+                - verb: post
+                  path: /gen-02
+              execute:
+                - gatewayscript:
+                    version: 2.0.0
+                    title: gatewayscript - Encode JWT
+                    source: "var objResponse = require( 'apim' );\r\nvar objCrypto   = require( 'crypto' ); \r\nvar vIssHeader  = objResponse.getvariable( 'request.headers.iss-claim' );\r\nvar vAudHeader  = objResponse.getvariable( 'request.headers.aud-claim' );\r\nvar vSubHeader  = objResponse.getvariable( 'request.headers.sub-claim' );\r\nvar objRequest  = objResponse.getvariable( 'request.body' );\r\nvar objOutput   = '';\r\n\r\n//METODOS A REUTILIZAR: \r\nfunction getBase64Encode( cadenaSinBase64 ){\r\n\t  var vCademaBuffer   = new Buffer( cadenaSinBase64 );\r\n    var vCademaBuffer64 = vCademaBuffer.toString( 'base64' );\t  \r\n    return vCademaBuffer64;\r\n} \r\n\r\nfunction getUnirCadenaJWT( vHeaderEncode, vPayloadEncode ){\r\n    return (vHeaderEncode + '.' + vPayloadEncode);\r\n}\r\n\r\n//VALIDACION DE PARAMETROS DE ENTRADA:  \r\nif( vIssHeader && vAudHeader && vSubHeader && objRequest ){  \r\n    \r\n    //REUTILIZAR LA 'CLAVE JWK' EN FORMATO 'JSON' (APIC): \r\n\t\tvar objJWKJson = '{\"alg\": \"HS256\", \"kty\": \"oct\", \"use\": \"sig\", \"k\": \"o5yErLaE-dbgVpSw65Rq57OA9dHyaF66Q_Et5azPa-XUjbyP0w9iRWhR4kru09aFfQLXeIODIN4uhjElYKXt8n76jt0Pjkd2pqk4t9abRF6tnL19GV4pflfL6uvVKkP4weOh39tqHt4TmkBgF2P-gFhgssZpjwq6l82fz3dUhQ2nkzoLA_CnyDGLZLd7SZ1yv73uzfE2Ot813zmig8KTMEMWVcWSDvy61F06vs_6LURcq_IEEevUiubBxG5S2akNnWigfpbhWYjMI5M22FOCpdcDBt4L7K1-yHt95Siz0QUb0MNlT_X8F76wH7_A37GpKKJGqeaiNWmHkgWdE8QWDQ\", \"kid\": \"hs256-key\"}';\r\n    \r\n    //TRANSFORMAR LA 'CLAVE JWK' DESDE 'JSON': \r\n\t\tvar objJWK = JSON.parse( objJWKJson );    \r\n    \r\n    var objJSON  = JSON.stringify( objRequest ); \r\n    var objARRAY = JSON.parse( objJSON );\r\n \r\n    var vObjeto = \"\";  \r\n    var vCampo  = \"\"; \r\n    var vValor  = \"\"; \r\n    var vCadena = \"\";\r\n\r\n    objARRAY.forEach( function( vObjeto ){\t\r\n        vCampo  = vObjeto.CAMPO;\r\n        vValor  = vObjeto.VALOR;       \r\n        vCadena = (vCadena + '\"' + vCampo + '\": \"' + vValor + '\",');\r\n    } );     \r\n    \r\n    var objHeader = {\r\n        \"alg\": \"HS256\",\r\n        \"kid\": \"hs256-key\"\r\n    } \r\n    \r\n    //CONTRUIR 'DINAMICAMENTE PAYLOAD':\r\n    var vFechaINI = Math.floor( Date.now() / 1000 );\r\n    var vFechaFIN = Math.floor( Date.now() / 1000 ) + (60 * 60); \r\n \r\n \r\n    var vCadenaEnLinea       = vCadena.replace( /[\\n\\r]/g, '' ).trim();        \r\n    var vCadenaSinUltimaComa = vCadenaEnLinea.substring( 0, vCadenaEnLinea.length - 1 );        \r\n \r\n    var objJSONString = \"{\\\"iss\\\": \\\"\" + vIssHeader + \"\\\", \\\"sub\\\": \\\"\" + vSubHeader + \"\\\", \\\"aud\\\": \\\"\" + vAudHeader + \"\\\", \\\"data\\\": {\" + vCadenaSinUltimaComa + \"}, \\\"exp\\\": \" + vFechaFIN + \", \\\"iat\\\": \" + vFechaINI + \"}\"; \r\n    //var objJSONString = '{\"iss\": \"' + vIssHeader + '\", \"sub\": \"' + vSubHeader + '\", \"aud\": \"' + vAudHeader + '\", ' + vCadena + ' \"exp\": ' + vFechaFIN + ', \"iat\": ' + vFechaINI + '}'; \r\n    var objPayload    = JSON.parse( objJSONString );    \r\n\r\n\t\t//OBTENER LA 'CLAVE JWK' EN FORMATO 'BYTEs':\r\n\t\tvar objBufferKeyBytes = new Buffer( objJWK.k, 'base64' );\r\n    \r\n\t\t//TRANSFORMAR LOS 'OBJETOS JWT' A 'JSON': \r\n\t\tvar objJWTHeaderJson  = JSON.stringify( objHeader  );\r\n\t\tvar objJWTPayloadJson = JSON.stringify( objPayload );\r\n\t\t\r\n\t\t//TRANSFORMAR LOS 'OBJETOS JWT' A 'BASE64': \r\n    var objHeaderEncoded  = getBase64Encode( objJWTHeaderJson  );\r\n    var objPayloadEncoded = getBase64Encode( objJWTPayloadJson );\r\n\t\t\r\n\t\t//CONCATENAR LOS 'OBJETOS JWT': \r\n\t\tvar vCadenaHeaderPayload      = getUnirCadenaJWT( objHeaderEncoded, objPayloadEncoded );\r\n\t\tvar vCadenaHeaderPayloadClear = vCadenaHeaderPayload.replace( /=+/g, '' ).replace( /\\+/g, '-' ).replace( /\\//g, '_' );\r\n\t\t\r\n\t\t//FIRMAR EL 'JWT' UTILIZANDO 'HMAC-SHA256': \r\n\t\tvar vCadenaSignature = objCrypto.createHmac( 'sha256', objBufferKeyBytes )\r\n\t\t                                .update( vCadenaHeaderPayloadClear )\r\n\t\t                                .digest( 'base64'  );\r\n\t\t\r\n\t\t//CONCATENAR LA 'FIRMA' A LA CADENA 'JWT': \r\n\t\tvar vCadenaJWTSigned      = (vCadenaHeaderPayloadClear + '.' + vCadenaSignature); \r\n\t\tvar vCadenaJWTSignedClear = vCadenaJWTSigned.replace( /=+/g, '' ).replace( /\\+/g, '-' ).replace( /\\//g, '_' );\r\n \r\n    objOutput = \"Bearer \" + vCadenaJWTSignedClear;\r\n    var objJSONString = '{\"jwt\": \"' + objOutput + '\"}';\r\n    objOutput = JSON.parse( objJSONString );\r\n    \r\n    //objOutput = vCadenaSinUltimaComa;\r\n}\r\nelse{\r\n\t   objOutput = \"Parametros REQUERIDOS NO ingresados.\";    \r\n}\r\n\r\nsession.output.write( objOutput );   \r\nobjResponse.output( 'application/json' );"
+                    description: >-
+                      GATEWAYSCRIPT PARA LA GENERACION COMPLETA DEL JWT TOKEN,
+                      EN BASE A LA ESTRUCTURA ENVIADA EN EL REQUEST.
+          otherwise: []
+    finally: []
+    catch: []
+  properties:
+    target-url:
+      value: http://example.com/operation-name
+      description: The URL of the target service
+      encoded: false
+  activity-log:
+    enabled: true
+    success-content: activity
+    error-content: payload
+basePath: /api-jwt-generate
+paths:
+  /gen-01:
+    parameters:
+      - in: header
+        name: iss-claim
+        required: true
+        type: string
+      - in: header
+        required: true
+        name: aud-claim
+        type: string
+      - name: sub-claim
+        required: true
+        in: header
+        type: string
+    get:
+      responses:
+        '200':
+          description: success
+          schema:
+            type: string
+  /gen-02:
+    parameters:
+      - name: iss-claim
+        required: true
+        in: header
+        type: string
+      - name: aud-claim
+        required: true
+        in: header
+        type: string
+      - name: sub-claim
+        required: true
+        in: header
+        type: string
+    post:
+      responses:
+        '200':
+          description: success
+          schema:
+            type: string
+securityDefinitions:
+  clientID:
+    type: apiKey
+    in: header
+    name: X-IBM-Client-Id
+    x-key-type: client_id
+security:
+  - clientID: []
+schemes:
+  - https
